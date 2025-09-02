@@ -223,7 +223,8 @@ $(function(){
         pt_br: 'i18n/pt_br.json',
         ar: 'i18n/ar.json',
         fr: 'i18n/fr.json',
-        tr_TR: 'i18n/tr_TR.json'
+        tr_TR: 'i18n/tr_TR.json',
+        es_mx: 'i18n/es_mx.json'
     }).done( function() {
         changeLanguageTo($.i18n().locale);
     });

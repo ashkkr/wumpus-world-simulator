@@ -1,0 +1,32 @@
+{
+	"@metadata": {
+		"authors": [
+			"Thiago Ferreira",
+			"Francisco Pineda"
+		],
+		"locale": "es_mx"
+	},
+	"breeze": "Brisa",
+	"stench": "Hedor",
+	"score": "Puntuación",
+	"arrow": "Flecha",
+	"remaining-golds": "Oro Restante",
+	"controls": "Controles",
+	"source-code": "Código Fuente",
+	"close": "Cerrar",
+	"restart": "Reiniciar",
+	"game-over": "Juego Terminado",
+	"congratulations": "Felicidades",
+	"share": "Compartir",
+	"settings": "Configuración",
+	"info": "Información",
+	"settings-remove-walls": "Quitar Muros",
+	"settings-volume": "Volumen",
+	"no-canvas-support": "Lo sentimos, el navegador no soporta canvas",
+	"en_us": "Inglés (Estados Unidos)",
+	"pt_br": "Portugués (Brasil)",
+	"fr": "Francés",
+	"ar": "Árabe",
+	"tr_TR": "Turco (Turquía)",
+	"es_mx": "Español (México)"
+}
