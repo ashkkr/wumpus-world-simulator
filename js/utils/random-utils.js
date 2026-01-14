@@ -1,12 +1,11 @@
 class RandomUtils {
-
     static shuffle(array) {
-
-        var currentIndex = array.length, temporaryValue, randomIndex;
+        var currentIndex = array.length,
+            temporaryValue,
+            randomIndex;
 
         // While there remain elements to shuffle...
         while (0 !== currentIndex) {
-
             // Pick a remaining element...
             randomIndex = Math.floor(Math.random() * currentIndex);
             currentIndex -= 1;
@@ -38,18 +37,16 @@ class RandomUtils {
     }
 
     static getRandomElements(array, numberOfElements) {
-
         let indexes = ArrayUtils.getIndexesFromSize(array.length);
 
         RandomUtils.shuffle(indexes);
 
-        let selected = indexes.filter((e,i) => i < numberOfElements);
+        let selected = indexes.filter((e, i) => i < numberOfElements);
 
-        return selected.map(el => array[el]);
+        return selected.map((el) => array[el]);
     }
 
     static getRandomLevel(lines, columns) {
-
         let positions = ArrayUtils.getIndexes(lines, columns);
 
         positions = ArrayUtils.removeByValues(positions, [[0, 0]]);
@@ -57,13 +54,13 @@ class RandomUtils {
         positions = ArrayUtils.removeByValues(positions, [[1, 0]]);
         positions = ArrayUtils.removeByValues(positions, [[1, 1]]);
 
-        let holes = RandomUtils.getRandomElements(positions, 10);
+        let holes = RandomUtils.getRandomElements(positions, 3);
         positions = ArrayUtils.removeByValues(positions, holes);
 
-        let wumpus = RandomUtils.getRandomElements(positions, 8);
+        let wumpus = RandomUtils.getRandomElements(positions, 1);
         positions = ArrayUtils.removeByValues(positions, wumpus);
 
-        let golds = RandomUtils.getRandomElements(positions, 8);
+        let golds = RandomUtils.getRandomElements(positions, 1);
         positions = ArrayUtils.removeByValues(positions, golds);
 
         return { holes, wumpus, golds };
