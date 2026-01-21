@@ -23,13 +23,14 @@ function restart() {
 
     $("#modal-win").modal("hide");
     $("#modal-game-over").modal("hide");
-    $("#btn-remove-walls").prop("checked", false);
+    $("#btn-remove-walls").prop("checked", true);
+    env.removeWalls = true;
 
     resources.stop("game-over");
     resources.stop("win");
     resources.play("theme", false);
 
-    (isAlive = true), (isFinished = false), animate();
+    ((isAlive = true), (isFinished = false), animate());
 }
 
 // Browser window resize
@@ -50,7 +51,7 @@ function resizeCanvas() {
 
 async function simulate() {
     var percepts = animate();
-    for (var i = 1; i <= 20 && !isFinished && isAlive; ++i) {
+    for (var i = 1; i <= 200 && !isFinished && isAlive; ++i) {
         agent.tell(percepts);
         keys = agent.ask();
         percepts = animate();
@@ -71,8 +72,13 @@ function update() {
     var deadWumpus = player.kill(keys);
 
     if (deadWumpus) {
-        player.score += 1000;
         env.removeWumpus(deadWumpus);
+    }
+
+    var isAtStart = player.getPosI() === 0 && player.getPosJ() === 0;
+    if (isAtStart && keys.enter) {
+        keys.enter = false;
+        isFinished = true;
     }
 
     var capturedGold = player.capture(keys);
@@ -83,13 +89,10 @@ function update() {
         env.removeGold(capturedGold);
 
         resources.play("gold");
-
-        if (env.golds.length == 0) {
-            isFinished = true;
-        }
     }
 
     if (env.hasAHole(player) || env.hasAWumpus(player)) {
+        player.score -= 1000;
         isAlive = false;
     }
 
