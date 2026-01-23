@@ -12,9 +12,16 @@ class LogicalAgent {
         this.haveArrow = true;
         this.wumpusAlive = true;
         this.safeLoc = new Set(["1,1"]);
+        this.unvisited = new Set();
+        this.visited = new Set(["1,1"]);
         this.curr = [1, 1];
         this.playerDirection = "down";
         this.actionList = [];
+        this.kb = new KnowledgeBase();
+    }
+
+    getAllClauses() {
+        return this.kb.getAllClauses();
     }
 
     tell = (percept) => {
@@ -27,47 +34,88 @@ class LogicalAgent {
 
         this.percept = percept;
         console.log({ percept });
+
+        this.kb.tellPercept(
+            {
+                breeze: this.percept.breeze === true,
+                stench: this.percept.stench === true,
+            },
+            this.curr,
+        );
     };
 
     moveDown = () => {
-        if (this.playerDirection != "down")
-            this.actionList.unshift({ ...this.defaultKeys, down: true });
+        const action = { ...this.defaultKeys, down: true };
+        this.updateCurrentLocation(action);
 
-        this.playerDirection = "down";
-        this.curr = [this.curr[0] + 1, this.curr[1]];
-        this.safeLoc.add(`${this.curr[0]},${this.curr[1]}`);
-        return { ...this.defaultKeys, down: true };
+        if (this.playerDirection != "down") {
+            this.actionList.unshift(action);
+            this.playerDirection = "down";
+        }
+
+        return { ...action };
     };
 
     moveLeft = () => {
-        if (this.playerDirection != "left")
-            this.actionList.unshift({ ...this.defaultKeys, left: true });
+        const action = { ...this.defaultKeys, left: true };
+        this.updateCurrentLocation(action);
 
-        this.playerDirection = "left";
-        this.curr = [this.curr[0], this.curr[1] - 1];
-        this.safeLoc.add(`${this.curr[0]},${this.curr[1]}`);
-        return { ...this.defaultKeys, left: true };
+        if (this.playerDirection != "left") {
+            this.actionList.unshift(action);
+            this.playerDirection = "left";
+        }
+
+        return { ...action };
     };
 
     moveRight = () => {
-        if (this.playerDirection != "right")
-            this.actionList.unshift({ ...this.defaultKeys, right: true });
+        const action = { ...this.defaultKeys, right: true };
+        this.updateCurrentLocation(action);
 
-        this.playerDirection = "right";
-        this.curr = [this.curr[0], this.curr[1] + 1];
-        this.safeLoc.add(`${this.curr[0]},${this.curr[1]}`);
-        return { ...this.defaultKeys, right: true };
+        if (this.playerDirection != "right") {
+            this.actionList.unshift(action);
+            this.playerDirection = "right";
+        }
+
+        return { ...action };
     };
 
     moveUp = () => {
-        if (this.playerDirection != "up")
-            this.actionList.unshift({ ...this.defaultKeys, up: true });
+        const action = { ...this.defaultKeys, up: true };
+        this.updateCurrentLocation(action);
 
-        this.playerDirection = "up";
-        this.curr = [this.curr[0] - 1, this.curr[1]];
-        this.safeLoc.add(`${this.curr[0]},${this.curr[1]}`);
-        return { ...this.defaultKeys, up: true };
+        if (this.playerDirection != "up") {
+            this.actionList.unshift(action);
+            this.playerDirection = "up";
+        }
+
+        return { ...action };
     };
+
+    updateCurrentLocation(action) {
+        if (!action || typeof action !== "object") return;
+
+        let moved = false;
+        if (action.up && this.playerDirection === "up") {
+            this.curr = [this.curr[0] - 1, this.curr[1]];
+            moved = true;
+        } else if (action.down && this.playerDirection === "down") {
+            this.curr = [this.curr[0] + 1, this.curr[1]];
+            moved = true;
+        } else if (action.left && this.playerDirection === "left") {
+            this.curr = [this.curr[0], this.curr[1] - 1];
+            moved = true;
+        } else if (action.right && this.playerDirection === "right") {
+            this.curr = [this.curr[0], this.curr[1] + 1];
+            moved = true;
+        }
+
+        if (moved) {
+            const key = `${this.curr[0]},${this.curr[1]}`;
+            this.visited.add(key);
+            this.unvisited.delete(key);
+        }
+    }
 
     ask = () => {
         console.log(this.actionList);
@@ -78,7 +126,9 @@ class LogicalAgent {
             if (action == "down") return this.moveDown();
             if (action == "left") return this.moveLeft();
             if (action == "right") return this.moveRight();
-            return action;
+
+            this.updateCurrentLocation(action);
+            return { ...action };
         }
 
         if (this.percept.stench == true && this.haveArrow) {
@@ -93,11 +143,59 @@ class LogicalAgent {
         if (this.percept.bump == true) {
             return this.moveDown();
         }
-        if (this.percept.breeze == true || this.percept.stench == true) {
-            return this.moveDown();
-        }
-        return this.moveRight();
+
+        return this.explore();
     };
+
+    explore() {
+        const [row, col] = this.curr;
+        const candidates = [
+            { pos: [row - 1, col] },
+            { pos: [row + 1, col] },
+            { pos: [row, col - 1] },
+            { pos: [row, col + 1] },
+        ];
+
+        for (const { pos } of candidates) {
+            const [r, c] = pos;
+            if (r < 1 || c < 1 || r > this.kb.height || c > this.kb.width)
+                continue;
+            const key = `${r},${c}`;
+            if (this.safeLoc.has(key)) continue;
+            if (this.kb.isOk(pos)) {
+                this.safeLoc.add(key);
+                if (!this.visited.has(key)) this.unvisited.add(key);
+            }
+        }
+        for (const { pos } of candidates) {
+            const [r, c] = pos;
+            if (r < 1 || c < 1 || r > this.kb.height || c > this.kb.width)
+                continue;
+            const key = `${r},${c}`;
+            if (this.unvisited.has(key)) {
+                const destination = [r, c];
+                const route = this.planRoute(
+                    this.safeLoc,
+                    this.curr,
+                    destination,
+                );
+                this.executeRoute(route, false);
+                return { ...this.defaultKeys };
+            }
+        }
+
+        if (this.unvisited.size > 0) {
+            const firstKey = this.unvisited.values().next().value;
+            const destination = firstKey.split(",").map((n) => Number(n));
+            const route = this.planRoute(this.safeLoc, this.curr, destination);
+            this.executeRoute(route, false);
+            return { ...this.defaultKeys };
+        }
+
+        const route = this.planRoute(this.safeLoc, this.curr, [1, 1]);
+        this.executeRoute(route, true);
+        return { ...this.defaultKeys };
+    }
 
     executeRoute = (path, climbOut) => {
         if (!Array.isArray(path) || path.length < 2) return;
@@ -114,7 +212,8 @@ class LogicalAgent {
             else if (dx === 0 && dy === -1) this.actionList.push("left");
         }
 
-        this.actionList.push({ ...this.defaultKeys, enter: true });
+        if (climbOut)
+            this.actionList.push({ ...this.defaultKeys, enter: true });
     };
 
     // dfs

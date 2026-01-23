@@ -50,8 +50,10 @@ function resizeCanvas() {
 // }
 
 async function simulate() {
+    console.log("started");
+    agent = new LogicalAgent();
     var percepts = animate();
-    for (var i = 1; i <= 200 && !isFinished && isAlive; ++i) {
+    for (var i = 1; i <= 500 && !isFinished && isAlive; ++i) {
         agent.tell(percepts);
         keys = agent.ask();
         percepts = animate();
@@ -101,6 +103,9 @@ function update() {
     $("#gold").html(env.golds.length);
 
     if (!isAlive) {
+        if (agent && typeof agent.getAllClauses === "function") {
+            console.log({ clauses: agent.getAllClauses() });
+        }
         displayGameOver();
     }
 
@@ -221,7 +226,6 @@ $(function () {
     canvas = document.getElementById("canvas");
     ctx = canvas.getContext("2d");
     keys = new Keys();
-    agent = new LogicalAgent();
 
     // To style all selects
     $("select").selectpicker({
@@ -291,11 +295,11 @@ $(function () {
         }
 
         restart();
-
         resizeCanvas();
-
         animate();
 
-        simulate();
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => simulate());
+        });
     });
 });

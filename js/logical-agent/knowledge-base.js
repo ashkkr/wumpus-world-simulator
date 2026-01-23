@@ -15,10 +15,15 @@ class KnowledgeBase {
         this.curr = [1, 1];
         this.playerDirection = "down";
         this.kb = [];
+        this.stenchPositions = [];
         this.width = 4;
         this.height = 4;
 
         this.initialiseAtemporalAxioms();
+    }
+
+    getAllClauses() {
+        return this.kb;
     }
 
     tellPercept(percept, location) {
@@ -27,17 +32,49 @@ class KnowledgeBase {
         }
         const [row, col] = location;
         const index = (row - 1) * this.width + (col - 1);
+        const locKey = `${row},${col}`;
         const breezeVar = 501 + index;
         const stenchVar = 401 + index;
 
-        if (typeof percept === "string") {
-            if (percept === "breeze") this.kb.push([breezeVar]);
-            else if (percept === "stench") this.kb.push([stenchVar]);
-            else throw new Error("Invalid percept: expected breeze or stench.");
-            return;
+        if (!percept || typeof percept !== "object") {
+            throw new Error(
+                "Invalid percept: expected object with boolean breeze and stench.",
+            );
         }
 
-        throw new Error("Invalid percept: expected string or object.");
+        const { breeze, stench } = percept;
+        if (typeof breeze !== "boolean" || typeof stench !== "boolean") {
+            throw new Error(
+                "Invalid percept: expected object with boolean breeze and stench.",
+            );
+        }
+
+        const removeUnitClause = (literal) => {
+            this.kb = this.kb.filter(
+                (clause) =>
+                    !(
+                        Array.isArray(clause) &&
+                        clause.length === 1 &&
+                        clause[0] === literal
+                    ),
+            );
+        };
+
+        const breezeClause = [breeze ? breezeVar : -breezeVar];
+        this.kb.push(breezeClause);
+        console.log({ clause: breezeClause, type: "breeze", loc: locKey });
+
+        const stenchClause = [stench ? stenchVar : -stenchVar];
+        this.kb.push(stenchClause);
+        console.log({ clause: stenchClause, type: "stench", loc: locKey });
+
+        if (stench) {
+            if (!this.stenchPositions.includes(locKey)) {
+                this.stenchPositions.push(locKey);
+            }
+        } else if (this.stenchPositions.includes(locKey)) {
+            removeUnitClause(stenchVar);
+        }
     }
 
     initialiseAtemporalAxioms() {

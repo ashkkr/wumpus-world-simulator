@@ -3,6 +3,8 @@
  */
 
 function dpll_satisfiable(sentence) {
+    const startTime =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
     const clauses = new Set(sentence);
     const symbols = new Set();
 
@@ -11,7 +13,20 @@ function dpll_satisfiable(sentence) {
             symbols.add(Math.abs(t));
         });
 
-    return dpll(clauses, symbols, new Map());
+    console.log({
+        dpll: "start",
+        clauses: clauses.size,
+        symbols: symbols.size,
+    });
+    const result = dpll(clauses, symbols, new Map());
+    const endTime =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
+    console.log({
+        dpll: "end",
+        result,
+        elapsedMs: endTime - startTime,
+    });
+    return result;
 }
 
 function dpll(clauses, symbols, model) {
@@ -36,9 +51,13 @@ function dpll(clauses, symbols, model) {
 
     if (satisfiable === true) return true;
 
+    if (symbols.size === 0) {
+        throw new Error("Invalid symbols: expected non-empty Set.");
+    }
+
     const nextsymbol = symbols.values().next().value;
-    symbols.delete(nextsymbol);
     const rest = new Set(symbols);
+    rest.delete(nextsymbol);
 
     const modeltrue = new Map(model);
     modeltrue.set(nextsymbol, true);
@@ -48,5 +67,8 @@ function dpll(clauses, symbols, model) {
     modelfalse.set(nextsymbol, false);
     modelfalse.set(nextsymbol * -1, true);
 
-    return dpll(clauses, symbols, modeltrue) || dpll(clauses, rest, modelfalse);
+    return (
+        dpll(clauses, new Set(rest), modeltrue) ||
+        dpll(clauses, new Set(rest), modelfalse)
+    );
 }
