@@ -23,8 +23,7 @@ function restart() {
 
     $("#modal-win").modal("hide");
     $("#modal-game-over").modal("hide");
-    $("#btn-remove-walls").prop("checked", true);
-    env.removeWalls = true;
+    $("#btn-remove-walls").prop("checked", false);
 
     resources.stop("game-over");
     resources.stop("win");
@@ -111,6 +110,9 @@ function update() {
 
     if (isFinished) {
         displayCongratulations();
+        if (agent && typeof agent.getAllClauses === "function") {
+            console.log({ clauses: agent.getAllClauses() });
+        }
     }
 
     const envPercepts = env.percept(player);

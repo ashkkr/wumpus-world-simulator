@@ -262,6 +262,30 @@ class KnowledgeBase {
         throw new Error("Invalid clause: expected number or array of numbers.");
     }
 
+    findWumpus() {
+        const wumpusStart = 101;
+        const indexFor = (row, col) => (row - 1) * this.width + (col - 1);
+        let fallback = null;
+
+        for (let row = 1; row <= this.height; row++) {
+            for (let col = 1; col <= this.width; col++) {
+                const key = `${row},${col}`;
+                if (this.safeLoc.has(key)) continue;
+
+                console.log(`Checking for wumpus in ${row},${col}`);
+                const wumpusVar = wumpusStart + indexFor(row, col);
+                const tempKb = [...this.kb, [-wumpusVar, -this.wumpusAlive]];
+                const isWumpus = !dpll_satisfiable(tempKb);
+                if (isWumpus) {
+                    console.log("WUMPUS FOUND");
+                    return [row, col];
+                } else console.log("No wumpus found");
+            }
+        }
+
+        return fallback;
+    }
+
     isOk(location) {
         if (!location || location.length < 2) {
             throw new Error("Invalid location: expected [row, col].");

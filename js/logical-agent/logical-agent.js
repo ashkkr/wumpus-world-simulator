@@ -18,6 +18,7 @@ class LogicalAgent {
         this.playerDirection = "down";
         this.actionList = [];
         this.kb = new KnowledgeBase();
+        this.attemptToKillWumpus = false;
     }
 
     getAllClauses() {
@@ -96,7 +97,9 @@ class LogicalAgent {
         if (!action || typeof action !== "object") return;
 
         let moved = false;
-        if (action.up && this.playerDirection === "up") {
+        if (action.space) {
+            this.haveArrow = false;
+        } else if (action.up && this.playerDirection === "up") {
             this.curr = [this.curr[0] - 1, this.curr[1]];
             moved = true;
         } else if (action.down && this.playerDirection === "down") {
@@ -108,12 +111,6 @@ class LogicalAgent {
         } else if (action.right && this.playerDirection === "right") {
             this.curr = [this.curr[0], this.curr[1] + 1];
             moved = true;
-        }
-
-        if (moved) {
-            const key = `${this.curr[0]},${this.curr[1]}`;
-            this.visited.add(key);
-            this.unvisited.delete(key);
         }
     }
 
@@ -131,10 +128,6 @@ class LogicalAgent {
             return { ...action };
         }
 
-        if (this.percept.stench == true && this.haveArrow) {
-            this.haveArrow = false;
-            return { ...this.defaultKeys, space: true };
-        }
         if (this.percept.glitter == true) {
             const route = this.planRoute(this.safeLoc, this.curr, [1, 1]);
             this.executeRoute(route, true);
@@ -155,6 +148,10 @@ class LogicalAgent {
             { pos: [row, col - 1] },
             { pos: [row, col + 1] },
         ];
+
+        const key = `${this.curr[0]},${this.curr[1]}`;
+        this.visited.add(key);
+        this.unvisited.delete(key);
 
         for (const { pos } of candidates) {
             const [r, c] = pos;
@@ -192,10 +189,114 @@ class LogicalAgent {
             return { ...this.defaultKeys };
         }
 
+        if (this.haveArrow && !this.attemptToKillWumpus)
+            return this.tryToKillWumpus();
+
         const route = this.planRoute(this.safeLoc, this.curr, [1, 1]);
         this.executeRoute(route, true);
         return { ...this.defaultKeys };
     }
+
+    tryToKillWumpus = () => {
+        this.attemptToKillWumpus = true;
+        let wumpusLocation = this.kb.findWumpus();
+
+        if (wumpusLocation == null) {
+            wumpusLocation = this.guessWumpusLocation();
+            if (!wumpusLocation) {
+                console.log(`No wumpus location`);
+                return { ...this.defaultKeys };
+            }
+            console.log(
+                `Could not find WUMPUS. hence guessing ${wumpusLocation[0]},${wumpusLocation[1]}`,
+            );
+        }
+
+        if (!Array.isArray(wumpusLocation) || wumpusLocation.length < 2)
+            return { ...this.defaultKeys };
+
+        const [wr, wc] = wumpusLocation;
+        const candidates = [
+            [wr - 1, wc],
+            [wr + 1, wc],
+            [wr, wc - 1],
+            [wr, wc + 1],
+        ];
+
+        let safeNeighbor = null;
+        for (const [r, c] of candidates) {
+            if (r < 1 || c < 1 || r > this.kb.height || c > this.kb.width)
+                continue;
+            const key = `${r},${c}`;
+            if (this.safeLoc.has(key)) {
+                safeNeighbor = [r, c];
+                break;
+            }
+        }
+
+        if (!safeNeighbor) {
+            console.log("no safe positions");
+            return { ...this.defaultKeys };
+        }
+
+        const route = this.planRoute(this.safeLoc, this.curr, safeNeighbor);
+        if (!Array.isArray(route) || route.length === 0) {
+            console.log("no route to safe position");
+            return { ...this.defaultKeys };
+        }
+        this.executeRoute(route, false);
+
+        const dx = wr - safeNeighbor[0];
+        const dy = wc - safeNeighbor[1];
+        let shootDir = null;
+        if (dx === 1 && dy === 0) shootDir = "down";
+        else if (dx === -1 && dy === 0) shootDir = "up";
+        else if (dx === 0 && dy === 1) shootDir = "right";
+        else if (dx === 0 && dy === -1) shootDir = "left";
+
+        if (!shootDir) return { ...this.defaultKeys };
+
+        let finalDirection = this.playerDirection;
+        if (route.length >= 2) {
+            const prev = route[route.length - 2];
+            const next = route[route.length - 1];
+            const stepX = next[0] - prev[0];
+            const stepY = next[1] - prev[1];
+            if (stepX === 1 && stepY === 0) finalDirection = "down";
+            else if (stepX === -1 && stepY === 0) finalDirection = "up";
+            else if (stepX === 0 && stepY === 1) finalDirection = "right";
+            else if (stepX === 0 && stepY === -1) finalDirection = "left";
+        }
+
+        if (finalDirection !== shootDir) {
+            const turnAction = { ...this.defaultKeys };
+            turnAction[shootDir] = true;
+            this.actionList.push(turnAction);
+        }
+        this.actionList.push({ ...this.defaultKeys, space: true });
+        return { ...this.defaultKeys };
+    };
+
+    guessWumpusLocation = () => {
+        for (const key of this.safeLoc) {
+            const [row, col] = key.split(",").map((n) => Number(n));
+            const candidates = [
+                [row - 1, col],
+                [row + 1, col],
+                [row, col - 1],
+                [row, col + 1],
+            ];
+
+            for (const [r, c] of candidates) {
+                if (r < 1 || c < 1 || r > this.kb.height || c > this.kb.width)
+                    continue;
+                const candidateKey = `${r},${c}`;
+                if (!this.safeLoc.has(candidateKey)) return [r, c];
+            }
+        }
+
+        return null;
+    };
 
     executeRoute = (path, climbOut) => {
         if (!Array.isArray(path) || path.length < 2) return;
