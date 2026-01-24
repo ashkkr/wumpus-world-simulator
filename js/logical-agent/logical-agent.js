@@ -199,7 +199,7 @@ class LogicalAgent {
 
     tryToKillWumpus = () => {
         this.attemptToKillWumpus = true;
-        let wumpusLocation = this.kb.findWumpus();
+        let wumpusLocation = this.kb.findWumpus(this.safeLoc);
 
         if (wumpusLocation == null) {
             wumpusLocation = this.guessWumpusLocation();
@@ -278,6 +278,25 @@ class LogicalAgent {
     };
 
     guessWumpusLocation = () => {
+        const stenchPositions = this.kb.getStenchPositions();
+
+        for (const key of stenchPositions) {
+            const [row, col] = key.split(",").map((n) => Number(n));
+            const candidates = [
+                [row - 1, col],
+                [row + 1, col],
+                [row, col - 1],
+                [row, col + 1],
+            ];
+
+            for (const [r, c] of candidates) {
+                if (r < 1 || c < 1 || r > this.kb.height || c > this.kb.width)
+                    continue;
+                const candidateKey = `${r},${c}`;
+                if (!this.safeLoc.has(candidateKey)) return [r, c];
+            }
+        }
+
         for (const key of this.safeLoc) {
             const [row, col] = key.split(",").map((n) => Number(n));
             const candidates = [

@@ -11,14 +11,12 @@ class KnowledgeBase {
     constructor() {
         this.haveArrow = true;
         this.wumpusAlive = true;
-        this.safeLoc = new Set(["1,1"]);
         this.curr = [1, 1];
         this.playerDirection = "down";
         this.kb = [];
         this.stenchPositions = [];
         this.width = 4;
         this.height = 4;
-
         this.initialiseAtemporalAxioms();
     }
 
@@ -35,6 +33,7 @@ class KnowledgeBase {
         const locKey = `${row},${col}`;
         const breezeVar = 501 + index;
         const stenchVar = 401 + index;
+        const wumpusVar = 101 + index;
 
         if (!percept || typeof percept !== "object") {
             throw new Error(
@@ -68,13 +67,23 @@ class KnowledgeBase {
         this.kb.push(stenchClause);
         console.log({ clause: stenchClause, type: "stench", loc: locKey });
 
+        // no wumpus clause
+        this.kb.push([-wumpusVar]);
+
         if (stench) {
             if (!this.stenchPositions.includes(locKey)) {
                 this.stenchPositions.push(locKey);
             }
         } else if (this.stenchPositions.includes(locKey)) {
             removeUnitClause(stenchVar);
+            this.stenchPositions = this.stenchPositions.filter(
+                (pos) => pos !== locKey,
+            );
         }
+    }
+
+    getStenchPositions() {
+        return this.stenchPositions;
     }
 
     initialiseAtemporalAxioms() {
@@ -262,7 +271,7 @@ class KnowledgeBase {
         throw new Error("Invalid clause: expected number or array of numbers.");
     }
 
-    findWumpus() {
+    findWumpus(safeLoc) {
         const wumpusStart = 101;
         const indexFor = (row, col) => (row - 1) * this.width + (col - 1);
         let fallback = null;
@@ -270,7 +279,7 @@ class KnowledgeBase {
         for (let row = 1; row <= this.height; row++) {
             for (let col = 1; col <= this.width; col++) {
                 const key = `${row},${col}`;
-                if (this.safeLoc.has(key)) continue;
+                if (safeLoc.has(key)) continue;
 
                 console.log(`Checking for wumpus in ${row},${col}`);
                 const wumpusVar = wumpusStart + indexFor(row, col);
