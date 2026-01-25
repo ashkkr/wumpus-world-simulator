@@ -11,8 +11,9 @@ class LogicalAgent {
 
         this.haveArrow = true;
         this.wumpusAlive = true;
-        this.safeLoc = new Set(["1,1"]);
-        this.unvisited = new Set();
+        // to speeden up dpll calls
+        this.safeLoc = new Set(["1,1", "1,2", "2,1"]);
+        this.unvisited = new Set(["1,2", "2,1"]);
         this.visited = new Set(["1,1"]);
         this.curr = [1, 1];
         this.playerDirection = "down";
@@ -201,6 +202,19 @@ class LogicalAgent {
 
         if (this.haveArrow && !this.attemptToKillWumpus)
             return this.tryToKillWumpus();
+
+        if (!this.haveArrow) {
+            const wumpusAlive = this.kb.isWumpusAlive();
+            if (wumpusAlive === false) {
+                const stenchPositions = this.kb.getStenchPositions();
+                if (Array.isArray(stenchPositions)) {
+                    for (const pos of stenchPositions) {
+                        this.unvisited.add(pos);
+                    }
+                }
+                return { ...this.defaultKeys };
+            }
+        }
 
         const route = this.planRoute(this.safeLoc, this.curr, [1, 1]);
         this.executeRoute(route, true);

@@ -3,6 +3,11 @@ var canvas, // Canvas DOM element
     keys,
     agent,
     env,
+    simulateRunId = 0,
+    simulateStartTimer = null,
+    totalSimulations = 0,
+    totalGoldCaptured = 0,
+    goldCapturedThisRun = false,
     isAlive = true,
     isFinished = false,
     player;
@@ -48,20 +53,74 @@ function resizeCanvas() {
 //     animate();
 // }
 
-async function simulate() {
+function startSimulation(options = {}) {
+    simulateRunId += 1;
+    const { stepDelayMs = 250 } = options;
+    return simulate(simulateRunId, stepDelayMs);
+}
+
+function scheduleSimulation() {
+    if (simulateStartTimer) {
+        clearTimeout(simulateStartTimer);
+    }
+    simulateStartTimer = setTimeout(() => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                void startSimulation();
+            });
+        });
+    }, 2000);
+}
+
+async function simulate(runId, stepDelayMs) {
     console.log("started");
     agent = new LogicalAgent();
+    goldCapturedThisRun = false;
     var percepts = animate();
-    for (var i = 1; i <= 500 && !isFinished && isAlive; ++i) {
+    for (
+        var i = 1;
+        i <= 500 && !isFinished && isAlive && runId === simulateRunId;
+        ++i
+    ) {
         agent.tell(percepts);
         keys = agent.ask();
         percepts = animate();
-        await new Promise((res) => {
-            setTimeout(() => {
-                res("works");
-            }, 2000);
-        });
+        if (stepDelayMs > 0) {
+            await new Promise((res) => {
+                setTimeout(() => {
+                    res("works");
+                }, stepDelayMs);
+            });
+        }
     }
+    if (runId !== simulateRunId) {
+        return null;
+    }
+    totalSimulations += 1;
+    if (goldCapturedThisRun) {
+        totalGoldCaptured += 1;
+    }
+    updateSimulationStats();
+    return player ? player.score : 0;
+}
+
+async function runInitialBatch(count) {
+    for (let i = 0; i < count; i++) {
+        if (i > 0) {
+            restart();
+            resizeCanvas();
+        }
+        await startSimulation({ stepDelayMs: 250 });
+    }
+}
+
+function updateSimulationStats() {
+    const percentage =
+        totalSimulations > 0
+            ? (totalGoldCaptured / totalSimulations) * 100
+            : 0;
+    $("#gold-capture-rate").html(percentage.toFixed(2) + "%");
+    $("#total-simulations").html(totalSimulations);
 }
 
 function update() {
@@ -85,6 +144,7 @@ function update() {
     var capturedGold = player.capture(keys);
 
     if (capturedGold) {
+        goldCapturedThisRun = true;
         player.score += 1000;
 
         env.removeGold(capturedGold);
@@ -269,6 +329,7 @@ $(function () {
 
     $(".btn-restart").click(function () {
         restart();
+        scheduleSimulation();
     });
 
     $(".card-game").width(canvas.width);
@@ -287,6 +348,8 @@ $(function () {
         changeVolumeTo($(this).val());
     });
 
+    updateSimulationStats();
+
     resources.load().then(() => {
         resources.play("theme", false);
 
@@ -299,9 +362,6 @@ $(function () {
         restart();
         resizeCanvas();
         animate();
-
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => simulate());
-        });
+        void runInitialBatch(50);
     });
 });

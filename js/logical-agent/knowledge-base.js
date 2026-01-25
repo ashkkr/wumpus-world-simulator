@@ -11,6 +11,7 @@ class KnowledgeBase {
     constructor() {
         this.haveArrow = true;
         this.wumpusAlive = 701;
+        this.wumpusAliveBoolean = true;
         this.curr = [1, 1];
         this.playerDirection = "down";
         this.kb = [];
@@ -76,6 +77,7 @@ class KnowledgeBase {
             }
         } else if (this.stenchPositions.includes(locKey)) {
             // wumpus killed
+            this.wumpusAliveBoolean = false;
             removeUnitClause(701);
             this.kb.push([-701]);
             removeUnitClause(stenchVar);
@@ -87,6 +89,10 @@ class KnowledgeBase {
 
     getStenchPositions() {
         return this.stenchPositions;
+    }
+
+    isWumpusAlive() {
+        return this.wumpusAliveBoolean;
     }
 
     initialiseAtemporalAxioms() {
