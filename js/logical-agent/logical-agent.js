@@ -47,11 +47,10 @@ class LogicalAgent {
 
     moveDown = () => {
         const action = { ...this.defaultKeys, down: true };
-        this.updateCurrentLocation(action);
+        const moved = this.updateCurrentLocation(action);
 
-        if (this.playerDirection != "down") {
+        if (!moved) {
             this.actionList.unshift(action);
-            this.playerDirection = "down";
         }
 
         return { ...action };
@@ -59,11 +58,10 @@ class LogicalAgent {
 
     moveLeft = () => {
         const action = { ...this.defaultKeys, left: true };
-        this.updateCurrentLocation(action);
+        const moved = this.updateCurrentLocation(action);
 
-        if (this.playerDirection != "left") {
+        if (!moved) {
             this.actionList.unshift(action);
-            this.playerDirection = "left";
         }
 
         return { ...action };
@@ -71,11 +69,10 @@ class LogicalAgent {
 
     moveRight = () => {
         const action = { ...this.defaultKeys, right: true };
-        this.updateCurrentLocation(action);
+        const moved = this.updateCurrentLocation(action);
 
-        if (this.playerDirection != "right") {
+        if (!moved) {
             this.actionList.unshift(action);
-            this.playerDirection = "right";
         }
 
         return { ...action };
@@ -83,20 +80,19 @@ class LogicalAgent {
 
     moveUp = () => {
         const action = { ...this.defaultKeys, up: true };
-        this.updateCurrentLocation(action);
+        const moved = this.updateCurrentLocation(action);
 
-        if (this.playerDirection != "up") {
+        if (!moved) {
             this.actionList.unshift(action);
-            this.playerDirection = "up";
         }
 
         return { ...action };
     };
 
     updateCurrentLocation(action) {
-        if (!action || typeof action !== "object") return;
-
         let moved = false;
+        if (!action || typeof action !== "object") return moved;
+
         if (action.space) {
             this.haveArrow = false;
         } else if (action.up && this.playerDirection === "up") {
@@ -112,6 +108,20 @@ class LogicalAgent {
             this.curr = [this.curr[0], this.curr[1] + 1];
             moved = true;
         }
+
+        if (!moved) {
+            if (action.up) {
+                this.playerDirection = "up";
+            } else if (action.down) {
+                this.playerDirection = "down";
+            } else if (action.left) {
+                this.playerDirection = "left";
+            } else if (action.right) {
+                this.playerDirection = "right";
+            }
+        }
+
+        return moved;
     }
 
     ask = () => {

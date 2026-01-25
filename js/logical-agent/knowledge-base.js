@@ -10,7 +10,7 @@
 class KnowledgeBase {
     constructor() {
         this.haveArrow = true;
-        this.wumpusAlive = true;
+        this.wumpusAlive = 701;
         this.curr = [1, 1];
         this.playerDirection = "down";
         this.kb = [];
@@ -75,6 +75,9 @@ class KnowledgeBase {
                 this.stenchPositions.push(locKey);
             }
         } else if (this.stenchPositions.includes(locKey)) {
+            // wumpus killed
+            removeUnitClause(701);
+            this.kb.push([-701]);
             removeUnitClause(stenchVar);
             this.stenchPositions = this.stenchPositions.filter(
                 (pos) => pos !== locKey,
@@ -106,13 +109,14 @@ class KnowledgeBase {
         const startVar = 101;
         const totalCells = this.width * this.height;
         const wumpusVars = [];
+        const wumpusAlive = this.wumpusAlive;
 
         for (let i = 0; i < totalCells; i++) {
             wumpusVars.push(startVar + i);
         }
 
-        // At least one wumpus.
-        this.kb.push(wumpusVars);
+        // wumpusAlive <-> (W1 v W2 v ... v Wn)
+        this.kb.push(...this.biconditionalToCnf(wumpusAlive, wumpusVars));
 
         // At most one wumpus: for every pair, add (~Wi v ~Wj).
         for (let i = 0; i < wumpusVars.length; i++) {
@@ -153,6 +157,7 @@ class KnowledgeBase {
     initialiseStench() {
         const stenchStart = 401;
         const wumpusStart = 101;
+        const wumpusAlive = 701;
         const indexFor = (row, col) => (row - 1) * this.width + (col - 1);
 
         for (let row = 1; row <= this.height; row++) {
@@ -165,19 +170,23 @@ class KnowledgeBase {
                 if (col > 1) adjacents.push([row, col - 1]);
                 if (col < this.width) adjacents.push([row, col + 1]);
 
+                // (stench ∧ wumpusAlive) <-> (any adjacent wumpus)
                 const wumpusDisjunction = [];
                 for (const [adjRow, adjCol] of adjacents) {
-                    wumpusDisjunction.push(
-                        wumpusStart + indexFor(adjRow, adjCol),
-                    );
+                    const wumpusPos = wumpusStart + indexFor(adjRow, adjCol);
+                    wumpusDisjunction.push(wumpusPos);
+                    // wumpusPos -> stench
+                    this.kb.push([-wumpusPos, stenchVar]);
+                    // wumpusPos -> wumpusAlive
+                    this.kb.push([-wumpusPos, wumpusAlive]);
                 }
                 if (wumpusDisjunction.length > 0) {
-                    this.kb.push(
-                        ...this.biconditionalToCnf(
-                            stenchVar,
-                            wumpusDisjunction,
-                        ),
-                    );
+                    // stench ∧ wumpusAlive -> (any adjacent wumpus)
+                    this.kb.push([
+                        -stenchVar,
+                        -wumpusAlive,
+                        ...wumpusDisjunction,
+                    ]);
                 }
             }
         }
