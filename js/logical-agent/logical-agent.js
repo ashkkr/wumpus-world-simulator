@@ -20,6 +20,7 @@ class LogicalAgent {
         this.actionList = [];
         this.kb = new KnowledgeBase();
         this.attemptToKillWumpus = false;
+        this.exploreStenchAgain = true;
     }
 
     getAllClauses() {
@@ -203,7 +204,9 @@ class LogicalAgent {
         if (this.haveArrow && !this.attemptToKillWumpus)
             return this.tryToKillWumpus();
 
-        if (!this.haveArrow) {
+        if (this.exploreStenchAgain) {
+            console.log("Exploring stench again");
+            this.exploreStenchAgain = false;
             const wumpusAlive = this.kb.isWumpusAlive();
             if (wumpusAlive === false) {
                 const stenchPositions = this.kb.getStenchPositions();

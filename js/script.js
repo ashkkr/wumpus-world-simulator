@@ -116,9 +116,7 @@ async function runInitialBatch(count) {
 
 function updateSimulationStats() {
     const percentage =
-        totalSimulations > 0
-            ? (totalGoldCaptured / totalSimulations) * 100
-            : 0;
+        totalSimulations > 0 ? (totalGoldCaptured / totalSimulations) * 100 : 0;
     $("#gold-capture-rate").html(percentage.toFixed(2) + "%");
     $("#total-simulations").html(totalSimulations);
 }

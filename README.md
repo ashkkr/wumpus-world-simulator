@@ -2,7 +2,7 @@
 
 A Wumpus World Simulator developed in Javascript, HTML and CSS.
 
-This version is based on propositional logic. It finds routes using DFS and performs inferences using DPLL. It averages fetching gold in about 70% of cases, and whenever it is safe to get gold, it does so.
+This version is based on propositional logic. It finds routes using DFS and performs inferences using DPLL. When simulated 50 times, the agent captured gold and climbed out 58% of the time, and even when it could not safely capture gold, it safely climbed out.
 
 This project is forked from `https://github.com/thiagodnf/wumpus-world-simulator`, which developed the game simulator; this project focuses on the agent simulator.
 
